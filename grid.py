@@ -1,6 +1,7 @@
 ﻿import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 
 class Droplet(object):
 
@@ -148,6 +149,21 @@ if __name__ == "__main__":
     grid = changeGrid(grid, 0.01, 30)
     trimmed_grid = grid[trimmed_grid_idx]
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
+    
+    # show nearest neighbour vectors
     #print(grid)
-    visualiseGrid(vectors)
+    #visualiseGrid(vectors)
+
+    # perform K means clustering on vectors
+    estimator = KMeans(n_clusters=4, n_init=10)
+    a = estimator.fit(vectors)
+    
+    # show clustered vectors
+    klabels = estimator.labels_
+    kmfig, kmax = plt.subplots()
+    kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
+    plt.axis('equal')
+    plt.show()
+
+    print(klabels)
     
