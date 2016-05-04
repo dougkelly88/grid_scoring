@@ -164,11 +164,13 @@ def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
+    # define basis vectors from mean vectors, and work out the position of the grid centre
     basis1 = 0.5 * (abs(mean_vec1) + abs(mean_vec2))
     basis2 = 0.5 * (abs(mean_vec4) + abs(mean_vec3))
    
     origin = sum(grid)/len(grid)
 
+    # construct a best fit grid from bases and origin...
     mean_grid = np.empty([1,2])
     mean_grid_row = np.empty([1,2])
     # build row
@@ -179,7 +181,6 @@ def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid
         for y in np.arange(0, mean_grid_ysz):
             mean_grid = np.append(mean_grid, [el + y*basis2], axis=0)
     mean_grid = np.delete(mean_grid, 0, 0)
-
     mean_grid = mean_grid - sum(mean_grid)/len(mean_grid) + [origin]
 
     return mean_grid
@@ -235,19 +236,12 @@ if __name__ == "__main__":
     mean_vec4 = sum(g4)/float(len(g4))
 
     mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 20, 20)
-    #visualiseGrid(mean_grid)
     visualiseGridsRealTheory(grid, mean_grid, droplet_r)
 
     vectorFromMeanGrid_g1 = g1 - mean_vec1
     vectorFromMeanGrid_g2 = g2 - mean_vec2
     vectorFromMeanGrid_g3 = g3 - mean_vec3
     vectorFromMeanGrid_g4 = g4 - mean_vec4
-
-    print(vectorFromMeanGrid_g1)
-    print(len(trimmed_grid))
-    print(len(vectorFromMeanGrid_g1))
-    #new_theory_grid = generateMeanGrid(trimmed_grid, vectorFromMeanGrid_g1)
-    #visualiseGrid(new_theory_grid)
 
     distanceFromMeanGrid1 = []
     distanceFromMeanGrid2 = []
@@ -262,8 +256,6 @@ if __name__ == "__main__":
         distanceFromMeanGrid3.append(np.linalg.norm(el))
     for el in vectorFromMeanGrid_g4:
         distanceFromMeanGrid4.append(np.linalg.norm(el))
-    
-    #print(distanceFromMeanGrid1)
 
     nsScoreSum = 0;
     for n in distanceFromMeanGrid1:
@@ -290,4 +282,22 @@ if __name__ == "__main__":
     print('NS score = %0.2d pc' % nsScorePercentage)
     print('EW score = %0.2d pc' % ewScorePercentage)
 
+    # try score based on overlap with mean grid (assumes perfect second print)
+    print(np.ma.shape(np.vstack((grid, mean_grid))))
+    nbrs = NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(np.vstack((grid, mean_grid)))
+    distances, indices =nbrs.kneighbors(grid)
 
+    ds = distances[:,1]
+    print(ds)
+    overlapScoreSum = 0;
+    for d in ds:
+        if d < 2 * droplet_r:
+            overlapScoreSum = overlapScoreSum + 1;
+            # might be better to do this adding printed positions to list, or otherwise tying successful merges with droplets
+    overlapScorePercentage = 100 * overlapScoreSum/len(ds)
+
+    print('Overlap score = %0.2d pc' % overlapScorePercentage)
+
+    # TODO: add same grid noise to the mean grid
+    # TODO: save visualisations as high-res images
+    # TODO: export "real" grid as *.dropletsid
