@@ -13,6 +13,8 @@ class Droplet(object):
         self._innerGrid = False
         self._hitNS = True
         self._hitEW = True
+        self.vectorGroup = 0
+        self.deviations = [0, 0, 0, 0]
 
     # pythonic setters and getters
     @property
@@ -74,8 +76,6 @@ class Droplet(object):
     def addVector(self, vector):
         self._neighbourVectors.append(vector)
 
-
-
 def makeBaseGrid(xsize, ysize):
     # make a regular square array of size [xsize ysize] as a base
     
@@ -99,8 +99,9 @@ def changeGrid(base_grid, sd_noise, scale):
     add_noise = np.reshape(np.random.normal(0, sd_noise, 2*len(base_grid)), [len(base_grid), 2])
     grid = base_grid + add_noise
     grid = grid * scale
+    theory_grid = base_grid * scale
 
-    return grid
+    return grid, theory_grid
 
 def removeDropletsFromEdge(grid, margin):
     # identify droplets around the edge of integer base grid that won't have [N,S,E,W]-nearest neighbours
@@ -142,11 +143,19 @@ def visualiseGrid(grid):
     plt.axis('equal')
     plt.show()
 
+def visualiseGridsRealTheory(realgrid, theorygrid):
+    plt.scatter(realgrid[:,0], realgrid[:,1], c='r')
+    plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b')
+    plt.axis('equal')
+    plt.show()
 
 if __name__ == "__main__":
 
+    hit_range = 5
+
     grid, trimmed_grid_idx = makeBaseGrid(10, 10)
-    grid = changeGrid(grid, 0.01, 30)
+    grid, theory_grid = changeGrid(grid, 0.05, 50)
+    visualiseGridsRealTheory(grid, theory_grid)
     trimmed_grid = grid[trimmed_grid_idx]
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
     
@@ -160,10 +169,81 @@ if __name__ == "__main__":
     
     # show clustered vectors
     klabels = estimator.labels_
-    kmfig, kmax = plt.subplots()
-    kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
-    plt.axis('equal')
-    plt.show()
-
+    #kmfig, kmax = plt.subplots()
+    #kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
+    #plt.axis('equal')
+    #plt.show()
     print(klabels)
     
+    g1 = []
+    g2 = []
+    g3 = []
+    g4 = []
+
+    for g, vec in zip(klabels, vectors):
+        if g == 0:
+            g1.append(vec)
+        elif g == 1:
+            g2.append(vec)
+        elif g == 2:
+            g3.append(vec)
+        elif g == 3:
+            g4.append(vec)
+
+    #print(g1)
+    #print(sum(g1)/float(len(g1)))
+
+    mean_vec1 = sum(g1)/float(len(g1))
+    mean_vec2 = sum(g2)/float(len(g2))
+    mean_vec3 = sum(g3)/float(len(g3))
+    mean_vec4 = sum(g4)/float(len(g4))
+
+    vectorFromMeanGrid_g1 = g1 - mean_vec1
+    vectorFromMeanGrid_g2 = g2 - mean_vec2
+    vectorFromMeanGrid_g3 = g3 - mean_vec3
+    vectorFromMeanGrid_g4 = g4 - mean_vec4
+
+    print(vectorFromMeanGrid_g1)
+
+    distanceFromMeanGrid1 = []
+    distanceFromMeanGrid2 = []
+    distanceFromMeanGrid3 = []
+    distanceFromMeanGrid4 = []
+    
+    for el in vectorFromMeanGrid_g1:
+        distanceFromMeanGrid1.append(np.linalg.norm(el))
+    for el in vectorFromMeanGrid_g2:
+        distanceFromMeanGrid2.append(np.linalg.norm(el))
+    for el in vectorFromMeanGrid_g3:
+        distanceFromMeanGrid3.append(np.linalg.norm(el))
+    for el in vectorFromMeanGrid_g4:
+        distanceFromMeanGrid4.append(np.linalg.norm(el))
+    
+    print(distanceFromMeanGrid1)
+
+    nsScoreSum = 0;
+    for n in distanceFromMeanGrid1:
+        if n < hit_range:
+            nsScoreSum = nsScoreSum + 1
+
+    for s in distanceFromMeanGrid3:
+        if s < hit_range:
+            nsScoreSum = nsScoreSum + 1;
+
+    nsScorePercentage = 100 * nsScoreSum/ (len(distanceFromMeanGrid1) + len(distanceFromMeanGrid3))
+
+    ewScoreSum = 0;
+    for n in distanceFromMeanGrid2:
+        if n < hit_range:
+            ewScoreSum = ewScoreSum + 1
+
+    for s in distanceFromMeanGrid4:
+        if s < hit_range:
+            ewScoreSum = ewScoreSum + 1;
+
+    ewScorePercentage = 100 * ewScoreSum/ (len(distanceFromMeanGrid2) + len(distanceFromMeanGrid4))
+
+    print('NS score = %0.2d pc' % nsScorePercentage)
+    print('EW score = %0.2d pc' % ewScorePercentage)
+
+
