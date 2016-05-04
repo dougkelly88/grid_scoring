@@ -2,6 +2,7 @@
 from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+import math
 
 class Droplet(object):
 
@@ -97,6 +98,7 @@ def changeGrid(base_grid, sd_noise, scale):
     # modify the base grid by adding noise and scaling to appropriate spacing
 
     add_noise = np.reshape(np.random.normal(0, sd_noise, 2*len(base_grid)), [len(base_grid), 2])
+    #add_noise = np.reshape(np.random.random_integers(0, 1, 2*len(base_grid))*0.1, [len(base_grid), 2])
     grid = base_grid + add_noise
     grid = grid * scale
     theory_grid = base_grid * scale
@@ -144,6 +146,9 @@ def visualiseGrid(grid):
     plt.show()
 
 def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
+    print(np.ma.shape(realgrid))
+    print(np.ma.shape(theorygrid))
+
     fig, ax = plt.subplots()
     plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x")
     plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x")
@@ -151,19 +156,42 @@ def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
     for xy in realgrid:
         circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(1, 0, 0, 0.5))
         ax.add_patch(circ)
-    for xy in theory_grid:
+    for xy in theorygrid:
         circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(0, 0, 1, 0.5))
         ax.add_patch(circ)
 
     plt.show()
 
+def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
+
+    basis1 = 0.5 * (abs(mean_vec1) + abs(mean_vec2))
+    basis2 = 0.5 * (abs(mean_vec4) + abs(mean_vec3))
+   
+    origin = sum(grid)/len(grid)
+
+    mean_grid = np.empty([1,2])
+    mean_grid_row = np.empty([1,2])
+    # build row
+    for x in np.arange(0, mean_grid_xsz):
+        mean_grid_row = np.append(mean_grid_row, [x*basis1], axis=0)
+    mean_grid_row = np.delete(mean_grid_row, 0, 0)
+    for el in mean_grid_row:
+        for y in np.arange(0, mean_grid_ysz):
+            mean_grid = np.append(mean_grid, [el + y*basis2], axis=0)
+    mean_grid = np.delete(mean_grid, 0, 0)
+
+    mean_grid = mean_grid - sum(mean_grid)/len(mean_grid) + [origin]
+
+    return mean_grid
+
 if __name__ == "__main__":
 
-    hit_range = 5
+    droplet_r = 2.5
 
     grid, trimmed_grid_idx = makeBaseGrid(10, 10)
+
     grid, theory_grid = changeGrid(grid, 0.05, 50)
-    visualiseGridsRealTheory(grid, theory_grid, hit_range)
+    #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
     trimmed_grid = grid[trimmed_grid_idx]
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
     
@@ -206,12 +234,20 @@ if __name__ == "__main__":
     mean_vec3 = sum(g3)/float(len(g3))
     mean_vec4 = sum(g4)/float(len(g4))
 
+    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 20, 20)
+    #visualiseGrid(mean_grid)
+    visualiseGridsRealTheory(grid, mean_grid, droplet_r)
+
     vectorFromMeanGrid_g1 = g1 - mean_vec1
     vectorFromMeanGrid_g2 = g2 - mean_vec2
     vectorFromMeanGrid_g3 = g3 - mean_vec3
     vectorFromMeanGrid_g4 = g4 - mean_vec4
 
     print(vectorFromMeanGrid_g1)
+    print(len(trimmed_grid))
+    print(len(vectorFromMeanGrid_g1))
+    #new_theory_grid = generateMeanGrid(trimmed_grid, vectorFromMeanGrid_g1)
+    #visualiseGrid(new_theory_grid)
 
     distanceFromMeanGrid1 = []
     distanceFromMeanGrid2 = []
@@ -227,26 +263,26 @@ if __name__ == "__main__":
     for el in vectorFromMeanGrid_g4:
         distanceFromMeanGrid4.append(np.linalg.norm(el))
     
-    print(distanceFromMeanGrid1)
+    #print(distanceFromMeanGrid1)
 
     nsScoreSum = 0;
     for n in distanceFromMeanGrid1:
-        if n < hit_range:
+        if n < 2 * droplet_r:
             nsScoreSum = nsScoreSum + 1
 
     for s in distanceFromMeanGrid3:
-        if s < hit_range:
+        if s < 2 * droplet_r:
             nsScoreSum = nsScoreSum + 1;
 
     nsScorePercentage = 100 * nsScoreSum/ (len(distanceFromMeanGrid1) + len(distanceFromMeanGrid3))
 
     ewScoreSum = 0;
-    for n in distanceFromMeanGrid2:
-        if n < hit_range:
+    for ea in distanceFromMeanGrid2:
+        if ea < 2 * droplet_r:
             ewScoreSum = ewScoreSum + 1
 
-    for s in distanceFromMeanGrid4:
-        if s < hit_range:
+    for w in distanceFromMeanGrid4:
+        if w < 2 *  droplet_r:
             ewScoreSum = ewScoreSum + 1;
 
     ewScorePercentage = 100 * ewScoreSum/ (len(distanceFromMeanGrid2) + len(distanceFromMeanGrid4))
