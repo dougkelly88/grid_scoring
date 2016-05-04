@@ -143,10 +143,18 @@ def visualiseGrid(grid):
     plt.axis('equal')
     plt.show()
 
-def visualiseGridsRealTheory(realgrid, theorygrid):
-    plt.scatter(realgrid[:,0], realgrid[:,1], c='r')
-    plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b')
+def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
+    fig, ax = plt.subplots()
+    plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x")
+    plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x")
     plt.axis('equal')
+    for xy in realgrid:
+        circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(1, 0, 0, 0.5))
+        ax.add_patch(circ)
+    for xy in theory_grid:
+        circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(0, 0, 1, 0.5))
+        ax.add_patch(circ)
+
     plt.show()
 
 if __name__ == "__main__":
@@ -155,7 +163,7 @@ if __name__ == "__main__":
 
     grid, trimmed_grid_idx = makeBaseGrid(10, 10)
     grid, theory_grid = changeGrid(grid, 0.05, 50)
-    visualiseGridsRealTheory(grid, theory_grid)
+    visualiseGridsRealTheory(grid, theory_grid, hit_range)
     trimmed_grid = grid[trimmed_grid_idx]
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
     
