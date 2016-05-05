@@ -3,6 +3,7 @@ from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import math
+import csv
 
 class Droplet(object):
 
@@ -185,13 +186,31 @@ def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid
 
     return mean_grid
 
+def saveGridAsDropletsID(grid, filepath, droplet_r):
+    # export grid to *.dropletsid in order to compare with James B C# solution
+
+     with open(filepath, 'w', newline='') as f:
+        writer = csv.writer(f)
+
+        writer.writerow(["Version","8","DropletsMD5","QmSKBvA2lHb3+8W+TVjkzw==","B4ImageIsTopDown","True",""])
+        ty = "Droplet"
+        tog = "False"
+        las = "L700nm"
+        shift = "0:0"
+        for xy in grid:
+            row = (xy[0], xy[1], droplet_r, ty, tog, las, shift)
+            print(row)
+            writer.writerow(row)
+
+
 if __name__ == "__main__":
 
-    droplet_r = 2.5
+    droplet_r = 2.6
 
     grid, trimmed_grid_idx = makeBaseGrid(10, 10)
 
     grid, theory_grid = changeGrid(grid, 0.05, 50)
+    saveGridAsDropletsID(grid, "C:/Users/d.kelly/Desktop/dummy.dropletsid", droplet_r)
     #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
     trimmed_grid = grid[trimmed_grid_idx]
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
@@ -282,7 +301,7 @@ if __name__ == "__main__":
     print('NS score = %0.2d pc' % nsScorePercentage)
     print('EW score = %0.2d pc' % ewScorePercentage)
 
-    # try score based on overlap with mean grid (assumes perfect second print)
+    # try score based on overlap with mean grid (assumes perfect second print) - N.B. this won't work if the droplets are too erratic!
     print(np.ma.shape(np.vstack((grid, mean_grid))))
     nbrs = NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(np.vstack((grid, mean_grid)))
     distances, indices =nbrs.kneighbors(grid)
