@@ -151,8 +151,8 @@ def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
     print(np.ma.shape(theorygrid))
 
     fig, ax = plt.subplots()
-    plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x")
-    plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x")
+    plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x", s=5)
+    plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x", s=5)
     plt.axis('equal')
     for xy in realgrid:
         circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(1, 0, 0, 0.5))
@@ -162,12 +162,19 @@ def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
         ax.add_patch(circ)
 
     plt.show()
+    fig.savefig("C:/Users/d.kelly/Desktop/dummy.png", dpi=600);
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
     # define basis vectors from mean vectors, and work out the position of the grid centre
     basis1 = 0.5 * (abs(mean_vec1) + abs(mean_vec2))
     basis2 = 0.5 * (abs(mean_vec4) + abs(mean_vec3))
+
+    nsAvDistance = np.linalg.norm(basis1)
+    print("NS average distance = %0.2f " % nsAvDistance)
+
+    ewAvDistance = np.linalg.norm(basis2)
+    print("EW average distance = %0.2f " % ewAvDistance)
    
     origin = sum(grid)/len(grid)
 
@@ -254,7 +261,7 @@ if __name__ == "__main__":
     mean_vec3 = sum(g3)/float(len(g3))
     mean_vec4 = sum(g4)/float(len(g4))
 
-    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 20, 20)
+    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 12, 12)
     visualiseGridsRealTheory(grid, mean_grid, droplet_r)
 
     vectorFromMeanGrid_g1 = g1 - mean_vec1
@@ -295,7 +302,7 @@ if __name__ == "__main__":
     for w in distanceFromMeanGrid4:
         if w < 2 *  droplet_r:
             ewScoreSum = ewScoreSum + 1;
-
+            
     ewScorePercentage = 100 * ewScoreSum/ (len(distanceFromMeanGrid2) + len(distanceFromMeanGrid4))
 
     print('NS score = %0.2d pc' % nsScorePercentage)
