@@ -140,13 +140,18 @@ def generateNearestNeighbours(grid, trimmed_grid):
 
     return distances, indices, vectors
 
-def visualiseGrid(grid):
+def visualiseGrid(grid, droplet_r):
     # plot grid
-    plt.scatter(grid[:,0], grid[:,1]);
+    gridfig, gridax = plt.subplots()
+    plt.scatter(grid[:,0], grid[:,1], c='r', marker="x", s=5)
+    for xy in grid:
+        circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(1, 0, 0, 0.5))
+        gridax.add_patch(circ)
     plt.axis('equal')
     plt.show()
+    gridfig.savefig("C:/Users/d.kelly/Desktop/dummy input grid.png", dpi=600)
 
-def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
+def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
     print(np.ma.shape(realgrid))
     print(np.ma.shape(theorygrid))
 
@@ -154,14 +159,18 @@ def visualiseGridsRealTheory(realgrid, theorygrid, uniform_size):
     plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x", s=5)
     plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x", s=5)
     plt.axis('equal')
-    for xy in realgrid:
-        circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(1, 0, 0, 0.5))
+    for xy, d in zip(realgrid, ds):
+        circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(1, 0, 0, 0.5))
         ax.add_patch(circ)
+        if (d > 2 * droplet_r):
+            badcirc = plt.Circle((xy[0], xy[1]), radius = 2.5 * droplet_r, ec='k', fill=False)
+            ax.add_patch(badcirc)
     for xy in theorygrid:
-        circ = plt.Circle((xy[0], xy[1]), radius = uniform_size, color=(0, 0, 1, 0.5))
+        circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(0, 0, 1, 0.5))
         ax.add_patch(circ)
 
     plt.show()
+    print("Saving figure...")
     fig.savefig("C:/Users/d.kelly/Desktop/dummy.png", dpi=600);
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
@@ -212,11 +221,12 @@ def saveGridAsDropletsID(grid, filepath, droplet_r):
 
 if __name__ == "__main__":
 
-    droplet_r = 2.6
+    droplet_r = 2
 
     grid, trimmed_grid_idx = makeBaseGrid(10, 10)
 
-    grid, theory_grid = changeGrid(grid, 0.05, 50)
+    grid, theory_grid = changeGrid(grid, 0.1, 25)
+    visualiseGrid(grid, droplet_r)
     saveGridAsDropletsID(grid, "C:/Users/d.kelly/Desktop/dummy.dropletsid", droplet_r)
     #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
     trimmed_grid = grid[trimmed_grid_idx]
@@ -232,10 +242,11 @@ if __name__ == "__main__":
     
     # show clustered vectors
     klabels = estimator.labels_
-    #kmfig, kmax = plt.subplots()
-    #kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
-    #plt.axis('equal')
-    #plt.show()
+    kmfig, kmax = plt.subplots()
+    kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
+    plt.axis('equal')
+    plt.show()
+    kmfig.savefig("C:/Users/d.kelly/Desktop/dummy vector clusters.png", dpi=600)
     print(klabels)
     
     g1 = []
@@ -262,7 +273,7 @@ if __name__ == "__main__":
     mean_vec4 = sum(g4)/float(len(g4))
 
     mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 12, 12)
-    visualiseGridsRealTheory(grid, mean_grid, droplet_r)
+    
 
     vectorFromMeanGrid_g1 = g1 - mean_vec1
     vectorFromMeanGrid_g2 = g2 - mean_vec2
@@ -323,6 +334,8 @@ if __name__ == "__main__":
     overlapScorePercentage = 100 * overlapScoreSum/len(ds)
 
     print('Overlap score = %0.2d pc' % overlapScorePercentage)
+
+    visualiseGridsRealTheory(grid, mean_grid, droplet_r, ds)
 
     # TODO: add same grid noise to the mean grid
     # TODO: save visualisations as high-res images
