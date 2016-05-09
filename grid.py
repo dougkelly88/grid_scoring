@@ -193,9 +193,20 @@ def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
+    # identify long axis of grid, assuming x and y step are identical (square array)
+    lenX = max(grid[:,0]) - min(grid[:,0])
+    lenY = max(grid[:,1]) - min(grid[:,1])
+
     # define basis vectors from mean vectors, and work out the position of the grid centre
     basis1 = 0.5 * (abs(mean_vec1) + abs(mean_vec2))
     basis2 = 0.5 * (abs(mean_vec4) + abs(mean_vec3))
+
+    if (basis1[0] > basis1[1]):
+        xbasis = basis1
+        ybasis = basis2
+    else:
+        xbasis = basis2
+        ybasis = basis1
 
     nsAvDistance = np.linalg.norm(basis1)
     print("NS average distance = %0.2f " % nsAvDistance)
@@ -209,12 +220,12 @@ def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid
     mean_grid = np.empty([1,2])
     mean_grid_row = np.empty([1,2])
     # build row
-    for x in np.arange(0, mean_grid_xsz):
-        mean_grid_row = np.append(mean_grid_row, [x*basis1], axis=0)
+    for y in np.arange(0, mean_grid_ysz):
+        mean_grid_row = np.append(mean_grid_row, [y*ybasis], axis=0)
     mean_grid_row = np.delete(mean_grid_row, 0, 0)
     for el in mean_grid_row:
-        for y in np.arange(0, mean_grid_ysz):
-            mean_grid = np.append(mean_grid, [el + y*basis2], axis=0)
+        for x in np.arange(0, mean_grid_xsz):
+            mean_grid = np.append(mean_grid, [el + x*xbasis], axis=0)
     mean_grid = np.delete(mean_grid, 0, 0)
     mean_grid = mean_grid - sum(mean_grid)/len(mean_grid) + [origin]
 
@@ -260,15 +271,15 @@ def importFromDropletsID(filepath, margin_pixels):
 
 if __name__ == "__main__":
 
-    droplet_r = 2
+    droplet_r = 2.5
     array_size_x = 10
-    array_size_y = 10
+    array_size_y = 80
     array_pitch = 25
     desktop = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
-    realOrSimulated = True  # TRUE for real data from dropletsid file, FALSE for simulated data
+    realOrSimulated = False  # TRUE for real data from dropletsid file, FALSE for simulated data
 
     if realOrSimulated:
-        grid, trimmed_grid_idx, droplet_r = importFromDropletsID("C:\\Users\\d.kelly\\Desktop\\dummy.dropletsid", 20)
+        grid, trimmed_grid_idx, droplet_r = importFromDropletsID("C:\\Users\\d.kelly\\Desktop\\dummy.dropletsid", array_pitch - array_pitch/10)
     else:
         grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
 
@@ -321,10 +332,15 @@ if __name__ == "__main__":
     #print(g1)
     #print(sum(g1)/float(len(g1)))
 
-    mean_vec1 = sum(g1)/float(len(g1))
-    mean_vec2 = sum(g2)/float(len(g2))
-    mean_vec3 = sum(g3)/float(len(g3))
-    mean_vec4 = sum(g4)/float(len(g4))
+    #mean_vec1 = sum(g1)/float(len(g1))
+    #mean_vec2 = sum(g2)/float(len(g2))
+    #mean_vec3 = sum(g3)/float(len(g3))
+    #mean_vec4 = sum(g4)/float(len(g4))
+
+    mean_vec1 = np.median(g1, axis=0)
+    mean_vec2 = np.median(g2, axis=0)
+    mean_vec3 = np.median(g3, axis=0)
+    mean_vec4 = np.median(g4, axis=0)
 
     mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, array_size_x + 2, array_size_y + 2)
     
