@@ -6,6 +6,12 @@ import math
 import csv
 import os
 
+try:
+    from Tkinter import *
+    from Tkinter.ttk import *
+except:
+    from tkinter import *
+
 class Droplet(object):
 
     def __init__(self):
@@ -78,6 +84,37 @@ class Droplet(object):
 
     def addVector(self, vector):
         self._neighbourVectors.append(vector)
+
+def chooseFile(initialdir, multipleFiles):
+    try:
+        import tkFileDialog
+    except:
+        from tkinter import filedialog as tkFileDialog
+
+    root = Tk()
+    try:
+        options = {}
+        options['initialdir']=initialdir
+        options['filetypes'] = [('DROPLETSID', '.dropletsid') ]
+        if not multipleFiles:
+            options['title'] = 'Choose a time lapse image to run analysis on...'
+            file = tkFileDialog.askopenfilename(**options)
+        else:
+            options['title'] = 'Choose one or more images to analyse...'
+            file = tkFileDialog.askopenfilenames(**options)
+
+        #print(file)
+        
+        if file == "":
+            print("INVALID_PATH")
+            exit(0)
+
+    except IOError:
+        print("INVALID_PATH")
+        exit(0)
+
+    root.destroy()
+    return file
 
 def makeBaseGrid(xsize, ysize):
     # make a regular square array of size [xsize ysize] as a base
@@ -276,10 +313,11 @@ if __name__ == "__main__":
     array_size_y = 80
     array_pitch = 25
     desktop = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
-    realOrSimulated = False  # TRUE for real data from dropletsid file, FALSE for simulated data
+    realOrSimulated = True  # TRUE for real data from dropletsid file, FALSE for simulated data
 
     if realOrSimulated:
-        grid, trimmed_grid_idx, droplet_r = importFromDropletsID("C:\\Users\\d.kelly\\Desktop\\dummy.dropletsid", array_pitch - array_pitch/10)
+        fpath = chooseFile(desktop, False)
+        grid, trimmed_grid_idx, droplet_r = importFromDropletsID(fpath, array_pitch - array_pitch/10)
     else:
         grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
 
