@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import math
 import csv
+import os
 
 class Droplet(object):
 
@@ -106,6 +107,23 @@ def changeGrid(base_grid, sd_noise, scale):
 
     return grid, theory_grid
 
+def removeDropletsFromEdgeByDistance(grid, margin_pixels):
+    # identify droplets around the edge of a real grid that won't have [N,S,E,W]-nearest neighbours based on distance from min/max x/y coords. 
+
+    trimmed_grid_idx = []
+    xlim = [min(grid[:,0]) + margin_pixels, max(grid[:,0]) - margin_pixels]
+    ylim = [min(grid[:,1]) + margin_pixels, max(grid[:,1]) - margin_pixels]
+
+    for idx, el in enumerate(grid):
+        x = el[0]
+        y = el[1]
+        
+        if ((x > xlim[0]) & (x < xlim[1])):
+            if ((y > ylim[0]) & (y < ylim[1])):
+                trimmed_grid_idx.append(idx)
+
+    return trimmed_grid_idx
+
 def removeDropletsFromEdge(grid, margin):
     # identify droplets around the edge of integer base grid that won't have [N,S,E,W]-nearest neighbours
     
@@ -149,7 +167,7 @@ def visualiseGrid(grid, droplet_r):
         gridax.add_patch(circ)
     plt.axis('equal')
     plt.show()
-    gridfig.savefig("C:/Users/d.kelly/Desktop/dummy input grid.png", dpi=600)
+    gridfig.savefig(desktop + "/dummy input grid.png", dpi=600)
 
 def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
     print(np.ma.shape(realgrid))
@@ -171,7 +189,7 @@ def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
 
     plt.show()
     print("Saving figure...")
-    fig.savefig("C:/Users/d.kelly/Desktop/dummy.png", dpi=600);
+    fig.savefig(desktop + "/dummy.png", dpi=600);
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
@@ -218,18 +236,54 @@ def saveGridAsDropletsID(grid, filepath, droplet_r):
             print(row)
             writer.writerow(row)
 
+def importFromDropletsID(filepath, margin_pixels):
+    
+    grid = np.empty([1, 2])
+    rs = []
+
+    with open(filepath, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        next(reader)    # skip first (header) row
+        for row in reader:
+            x = float(row[0])
+            y = float(row[1])
+            r = float(row[2])
+
+            grid = np.append(grid,  [[x, y]], axis=0)
+            rs.append(r)
+
+    grid = np.delete(grid, 0, 0)
+    droplet_r = sum(rs)/len(rs)
+    trimmed_grid_idx = removeDropletsFromEdgeByDistance(grid, margin_pixels)
+    
+    return grid, trimmed_grid_idx, droplet_r
 
 if __name__ == "__main__":
 
     droplet_r = 2
+    array_size_x = 10
+    array_size_y = 10
+    array_pitch = 25
+    desktop = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
+    realOrSimulated = True  # TRUE for real data from dropletsid file, FALSE for simulated data
 
-    grid, trimmed_grid_idx = makeBaseGrid(10, 10)
+    if realOrSimulated:
+        grid, trimmed_grid_idx, droplet_r = importFromDropletsID("C:\\Users\\d.kelly\\Desktop\\dummy.dropletsid", 20)
+    else:
+        grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
 
-    grid, theory_grid = changeGrid(grid, 0.1, 25)
-    visualiseGrid(grid, droplet_r)
-    saveGridAsDropletsID(grid, "C:/Users/d.kelly/Desktop/dummy.dropletsid", droplet_r)
-    #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
+        grid, theory_grid = changeGrid(grid, 0.1, array_pitch)
+
     trimmed_grid = grid[trimmed_grid_idx]
+    
+    print('droplet_r = %f' % droplet_r)
+    visualiseGrid(grid, droplet_r)
+    visualiseGrid(trimmed_grid, droplet_r)
+    
+    if not realOrSimulated:
+        saveGridAsDropletsID(grid, desktop + "/dummy.dropletsid", droplet_r)
+    
+    #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
     
     # show nearest neighbour vectors
@@ -246,7 +300,7 @@ if __name__ == "__main__":
     kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
     plt.axis('equal')
     plt.show()
-    kmfig.savefig("C:/Users/d.kelly/Desktop/dummy vector clusters.png", dpi=600)
+    kmfig.savefig(desktop + "/dummy vector clusters.png", dpi=600)
     print(klabels)
     
     g1 = []
@@ -272,7 +326,7 @@ if __name__ == "__main__":
     mean_vec3 = sum(g3)/float(len(g3))
     mean_vec4 = sum(g4)/float(len(g4))
 
-    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, 12, 12)
+    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, array_size_x + 2, array_size_y + 2)
     
 
     vectorFromMeanGrid_g1 = g1 - mean_vec1
@@ -338,5 +392,3 @@ if __name__ == "__main__":
     visualiseGridsRealTheory(grid, mean_grid, droplet_r, ds)
 
     # TODO: add same grid noise to the mean grid
-    # TODO: save visualisations as high-res images
-    # TODO: export "real" grid as *.dropletsid
