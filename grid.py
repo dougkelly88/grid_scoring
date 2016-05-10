@@ -205,11 +205,18 @@ def visualiseGrid(grid, droplet_r, title):
         circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(1, 0, 0, 0.5))
         gridax.add_patch(circ)
     plt.axis('equal')
+
     try:
         figManager = plt.get_current_fig_manager()
         figManager.window.showMaximized()           # works with QT4AGG, WXAGG BACKENDS ONLY!
+    
+    except:
+        pass
+    
     plt.show()
-    gridfig.savefig(root_path + "/dummy input grid.png", dpi=600)
+    print('saving figure...')
+    gridfig.savefig(root_path + "/" + title + ".png", dpi=600)
+    print('figure saved!')
 
 def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds, title):
     print(np.ma.shape(realgrid))
@@ -234,9 +241,14 @@ def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds, title):
     try:
         figManager = plt.get_current_fig_manager()
         figManager.window.showMaximized()           # works with QT4AGG, WXAGG BACKENDS ONLY!
+
+    except:
+        pass
+
     plt.show()
-    print("Saving figure...")
-    fig.savefig(root_path + "/dummy.png", dpi=600);
+    print("saving figure...")
+    fig.savefig(root_path + "/Real first print, ideal second print.png", dpi=600);
+    print('figure saved!')
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
@@ -378,7 +390,9 @@ if __name__ == "__main__":
     kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
     plt.axis('equal')
     plt.show()
-    kmfig.savefig(root_path + "/dummy vector clusters.png", dpi=600)
+    print('saving figure...')
+    kmfig.savefig(root_path + "/Vector clusters.png", dpi=600)
+    print('figure saved!')
     #print(klabels)
     
     g1 = []
