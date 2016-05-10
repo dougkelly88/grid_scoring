@@ -195,22 +195,29 @@ def generateNearestNeighbours(grid, trimmed_grid):
 
     return distances, indices, vectors
 
-def visualiseGrid(grid, droplet_r):
+def visualiseGrid(grid, droplet_r, title):
     # plot grid
     gridfig, gridax = plt.subplots()
+    gridfig.canvas.set_window_title(title) 
     plt.scatter(grid[:,0], grid[:,1], c='r', marker="x", s=5)
+    plt.title(title)
     for xy in grid:
         circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(1, 0, 0, 0.5))
         gridax.add_patch(circ)
     plt.axis('equal')
+    try:
+        figManager = plt.get_current_fig_manager()
+        figManager.window.showMaximized()           # works with QT4AGG, WXAGG BACKENDS ONLY!
     plt.show()
-    gridfig.savefig(desktop + "/dummy input grid.png", dpi=600)
+    gridfig.savefig(root_path + "/dummy input grid.png", dpi=600)
 
-def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
+def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds, title):
     print(np.ma.shape(realgrid))
     print(np.ma.shape(theorygrid))
 
     fig, ax = plt.subplots()
+    fig.canvas.set_window_title(title) 
+    plt.title(title)
     plt.scatter(realgrid[:,0], realgrid[:,1], c='r', marker="x", s=5)
     plt.scatter(theorygrid[:,0], theorygrid[:,1], c='b', marker="x", s=5)
     plt.axis('equal')
@@ -224,34 +231,51 @@ def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds):
         circ = plt.Circle((xy[0], xy[1]), radius = droplet_r, color=(0, 0, 1, 0.5))
         ax.add_patch(circ)
 
+    try:
+        figManager = plt.get_current_fig_manager()
+        figManager.window.showMaximized()           # works with QT4AGG, WXAGG BACKENDS ONLY!
     plt.show()
     print("Saving figure...")
-    fig.savefig(desktop + "/dummy.png", dpi=600);
+    fig.savefig(root_path + "/dummy.png", dpi=600);
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
-    # identify long axis of grid, assuming x and y step are identical (square array)
-    lenX = max(grid[:,0]) - min(grid[:,0])
-    lenY = max(grid[:,1]) - min(grid[:,1])
+    # should only take the abs value of the long component of the mean_vecs when calculating bases!
+    if (abs(mean_vec1[0]) > abs(mean_vec1[1])):
+        basis1 = 0.5 * np.asarray([abs(mean_vec1[0]) + abs(mean_vec3[0]), mean_vec1[1] + mean_vec3[1]])
+        basis2 = 0.5 * np.asarray([mean_vec2[0] + mean_vec4[0], abs(mean_vec2[1]) + abs(mean_vec4[1])])
+    else:
+        basis1 = 0.5 * np.asarray([mean_vec1[0] + mean_vec3[0], abs(mean_vec1[1]) + abs(mean_vec3[1])])
+        basis2 = 0.5 * np.asarray([abs(mean_vec2[0]) + abs(mean_vec4[0]), mean_vec2[1] + mean_vec4[1]])
 
-    # define basis vectors from mean vectors, and work out the position of the grid centre
-    basis1 = 0.5 * (abs(mean_vec1) + abs(mean_vec2))
-    basis2 = 0.5 * (abs(mean_vec4) + abs(mean_vec3))
 
-    if (basis1[0] > basis1[1]):
+    print("basis1 (%0.2f, %0.2f) " % (basis1[0], basis1[1]) )
+    print("mean_vec1 (%0.2f, %0.2f) " % (mean_vec1[0], mean_vec1[1]) )
+    print("mean_vec3 (%0.2f, %0.2f) " % (mean_vec3[0], mean_vec3[1]) )
+
+    if (abs(basis1[0]) > abs(basis1[1])):
         xbasis = basis1
         ybasis = basis2
     else:
         xbasis = basis2
         ybasis = basis1
 
-    nsAvDistance = np.linalg.norm(basis1)
+    nsAvDistance = np.linalg.norm(ybasis)
     print("NS average distance = %0.2f " % nsAvDistance)
+    print("ybasis (%0.2f, %0.2f) " % (ybasis[0], ybasis[1]) )
 
-    ewAvDistance = np.linalg.norm(basis2)
+    ewAvDistance = np.linalg.norm(xbasis)
     print("EW average distance = %0.2f " % ewAvDistance)
+    print("xbasis (%0.2f, %0.2f) " % (xbasis[0], xbasis[1]) )
    
     origin = sum(grid)/len(grid)
+    origin = grid[0,:]
+    distance_from_zero = np.linalg.norm(grid, axis = 1)
+    print(distance_from_zero[1:10])
+    origin_idx = np.argmin(distance_from_zero)
+    origin = grid[origin_idx, :]
+    origin = origin - xbasis - ybasis
+    print(origin)
 
     # construct a best fit grid from bases and origin...
     mean_grid = np.empty([1,2])
@@ -264,7 +288,10 @@ def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid
         for x in np.arange(0, mean_grid_xsz):
             mean_grid = np.append(mean_grid, [el + x*xbasis], axis=0)
     mean_grid = np.delete(mean_grid, 0, 0)
-    mean_grid = mean_grid - sum(mean_grid)/len(mean_grid) + [origin]
+    #mean_grid = mean_grid - sum(mean_grid)/len(mean_grid) + [origin]
+    print(mean_grid[1:10,:])
+    mean_grid = mean_grid + [origin]
+    print(mean_grid[1:10,:])
 
     return mean_grid
 
@@ -312,11 +339,12 @@ if __name__ == "__main__":
     array_size_x = 10
     array_size_y = 80
     array_pitch = 25
-    desktop = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
+    root_path = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
     realOrSimulated = True  # TRUE for real data from dropletsid file, FALSE for simulated data
 
     if realOrSimulated:
-        fpath = chooseFile(desktop, False)
+        fpath = chooseFile(root_path, False)
+        root_path, dummy = os.path.split(fpath)
         grid, trimmed_grid_idx, droplet_r = importFromDropletsID(fpath, array_pitch - array_pitch/10)
     else:
         grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
@@ -326,11 +354,11 @@ if __name__ == "__main__":
     trimmed_grid = grid[trimmed_grid_idx]
     
     print('droplet_r = %f' % droplet_r)
-    visualiseGrid(grid, droplet_r)
-    visualiseGrid(trimmed_grid, droplet_r)
+    visualiseGrid(grid, droplet_r, 'Input grid')
+    visualiseGrid(trimmed_grid, droplet_r, 'Trimmed grid')
     
     if not realOrSimulated:
-        saveGridAsDropletsID(grid, desktop + "/dummy.dropletsid", droplet_r)
+        saveGridAsDropletsID(grid, root_path + "/dummy.dropletsid", droplet_r)
     
     #visualiseGridsRealTheory(grid, theory_grid, droplet_r)
     distances, indices, vectors = generateNearestNeighbours(grid, trimmed_grid)
@@ -346,11 +374,12 @@ if __name__ == "__main__":
     # show clustered vectors
     klabels = estimator.labels_
     kmfig, kmax = plt.subplots()
+    plt.title('Kmeans vectors')
     kmax.scatter(vectors[:,0], vectors[:,1], c=klabels.astype(np.float))
     plt.axis('equal')
     plt.show()
-    kmfig.savefig(desktop + "/dummy vector clusters.png", dpi=600)
-    print(klabels)
+    kmfig.savefig(root_path + "/dummy vector clusters.png", dpi=600)
+    #print(klabels)
     
     g1 = []
     g2 = []
@@ -380,7 +409,19 @@ if __name__ == "__main__":
     mean_vec3 = np.median(g3, axis=0)
     mean_vec4 = np.median(g4, axis=0)
 
-    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, array_size_x + 2, array_size_y + 2)
+    if realOrSimulated:
+        # take vec1 and vec2, work out which is x and which is y
+        if (abs(mean_vec1[0]) > abs(mean_vec1[1])):
+            xvec = mean_vec1
+            yvec = mean_vec2
+        else:
+            xvec = mean_vec2
+            yvec = mean_vec1
+        # approximate array sizes based on extent in x, y, and mean vector lengths
+        array_size_x = int( (max(grid[:,0]) - min(grid[:,0]))/np.linalg.norm(xvec) )
+        array_size_y = int( (max(grid[:,1]) - min(grid[:,1]))/np.linalg.norm(yvec) )
+
+    mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, array_size_x + 4, array_size_y + 4)
     
 
     vectorFromMeanGrid_g1 = g1 - mean_vec1
@@ -428,12 +469,12 @@ if __name__ == "__main__":
     print('EW score = %0.2d pc' % ewScorePercentage)
 
     # try score based on overlap with mean grid (assumes perfect second print) - N.B. this won't work if the droplets are too erratic!
-    print(np.ma.shape(np.vstack((grid, mean_grid))))
+    #print(np.ma.shape(np.vstack((grid, mean_grid))))
     nbrs = NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(np.vstack((grid, mean_grid)))
     distances, indices =nbrs.kneighbors(grid)
 
     ds = distances[:,1]
-    print(ds)
+    #print(ds)
     overlapScoreSum = 0;
     for d in ds:
         if d < 2 * droplet_r:
@@ -443,6 +484,6 @@ if __name__ == "__main__":
 
     print('Overlap score = %0.2d pc' % overlapScorePercentage)
 
-    visualiseGridsRealTheory(grid, mean_grid, droplet_r, ds)
+    visualiseGridsRealTheory(grid, mean_grid, droplet_r, ds, ('Ideal second print overlaid on real first print,\n overlap = %0.2d%%, NS = %0.2d%%, EW = %0.2d%%' % (overlapScorePercentage, nsScorePercentage, ewScorePercentage)))
 
     # TODO: add same grid noise to the mean grid
