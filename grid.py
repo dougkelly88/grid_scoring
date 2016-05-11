@@ -252,18 +252,58 @@ def visualiseGridsRealTheory(realgrid, theorygrid, droplet_r, ds, title):
 
 def generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, mean_grid_xsz, mean_grid_ysz):
 
+    print("mean_vec1 (%0.2f, %0.2f) " % (mean_vec1[0], mean_vec1[1]) )
+    print("mean_vec2 (%0.2f, %0.2f) " % (mean_vec2[0], mean_vec2[1]) )
+    print("mean_vec3 (%0.2f, %0.2f) " % (mean_vec3[0], mean_vec3[1]) )
+    print("mean_vec4 (%0.2f, %0.2f) " % (mean_vec4[0], mean_vec4[1]) )
+
+    mean_vecs = [mean_vec1, mean_vec2, mean_vec3, mean_vec4]
+
+    print('mean_vecs')
+    print(mean_vecs)
+
+    # clunky means of ensuring that opposing vectors are paired appropriately - improve!
+    idxs = [0,1,2]
+    thetas = [math.atan(x[1]/x[0]) for x in mean_vecs]
+    print('thetas')
+    print(thetas)
+    dthetas = [abs(theta) - abs(thetas[0]) for theta in thetas]
+    
+    dthetas.pop(0)
+    print('dthetas')
+    print(dthetas)
+    pair_with_1_idx = np.argmin(abs(np.asarray(dthetas)))
+    print('pair with 1 idx')
+    print(pair_with_1_idx)
+    pair_with_1_vec = mean_vecs[pair_with_1_idx+1]
+    idxs.remove(pair_with_1_idx)
+    dont_pair_with_1_vec1 = mean_vecs[idxs[0]+1]
+    dont_pair_with_1_vec2 = mean_vecs[idxs[1]+1]
+
+    print("mean_vec1 (%0.2f, %0.2f) " % (mean_vec1[0], mean_vec1[1]) )
+    print("pair_with_1_vec (%0.2f, %0.2f) " % (pair_with_1_vec[0], pair_with_1_vec[1]) )
+    print("dont_pair_with_1_vec1 (%0.2f, %0.2f) " % (dont_pair_with_1_vec1[0], dont_pair_with_1_vec1[1]) )
+    print("dont_pair_with_1_vec2 (%0.2f, %0.2f) " % (dont_pair_with_1_vec2[0], dont_pair_with_1_vec2[1]) )
+
+    ## should only take the abs value of the long component of the mean_vecs when calculating bases!
+    #if (abs(mean_vec1[0]) > abs(mean_vec1[1])):
+    #    basis1 = 0.5 * np.asarray([abs(mean_vec1[0]) + abs(mean_vec3[0]), mean_vec1[1] + mean_vec3[1]])
+    #    basis2 = 0.5 * np.asarray([mean_vec2[0] + mean_vec4[0], abs(mean_vec2[1]) + abs(mean_vec4[1])])
+    #else:
+    #    basis1 = 0.5 * np.asarray([mean_vec1[0] + mean_vec3[0], abs(mean_vec1[1]) + abs(mean_vec3[1])])
+    #    basis2 = 0.5 * np.asarray([abs(mean_vec2[0]) + abs(mean_vec4[0]), mean_vec2[1] + mean_vec4[1]])
+
     # should only take the abs value of the long component of the mean_vecs when calculating bases!
     if (abs(mean_vec1[0]) > abs(mean_vec1[1])):
-        basis1 = 0.5 * np.asarray([abs(mean_vec1[0]) + abs(mean_vec3[0]), mean_vec1[1] + mean_vec3[1]])
-        basis2 = 0.5 * np.asarray([mean_vec2[0] + mean_vec4[0], abs(mean_vec2[1]) + abs(mean_vec4[1])])
+        basis1 = 0.5 * np.asarray([abs(mean_vec1[0]) + abs(pair_with_1_vec[0]), mean_vec1[1] + pair_with_1_vec[1]])
+        basis2 = 0.5 * np.asarray([dont_pair_with_1_vec1[0] + dont_pair_with_1_vec2[0], abs(dont_pair_with_1_vec1[1]) + abs(dont_pair_with_1_vec2[1])])
     else:
-        basis1 = 0.5 * np.asarray([mean_vec1[0] + mean_vec3[0], abs(mean_vec1[1]) + abs(mean_vec3[1])])
-        basis2 = 0.5 * np.asarray([abs(mean_vec2[0]) + abs(mean_vec4[0]), mean_vec2[1] + mean_vec4[1]])
-
+        basis1 = 0.5 * np.asarray([mean_vec1[0] + pair_with_1_vec[0], abs(mean_vec1[1]) + abs(pair_with_1_vec[1])])
+        basis2 = 0.5 * np.asarray([abs(dont_pair_with_1_vec1[0]) + abs(dont_pair_with_1_vec2[0]), dont_pair_with_1_vec1[1] + dont_pair_with_1_vec2[1]])
 
     print("basis1 (%0.2f, %0.2f) " % (basis1[0], basis1[1]) )
-    print("mean_vec1 (%0.2f, %0.2f) " % (mean_vec1[0], mean_vec1[1]) )
-    print("mean_vec3 (%0.2f, %0.2f) " % (mean_vec3[0], mean_vec3[1]) )
+    print("basis2 (%0.2f, %0.2f) " % (basis2[0], basis2[1]) )
+    
 
     if (abs(basis1[0]) > abs(basis1[1])):
         xbasis = basis1
@@ -348,8 +388,8 @@ def importFromDropletsID(filepath, margin_pixels):
 if __name__ == "__main__":
 
     droplet_r = 2.5
-    array_size_x = 10
-    array_size_y = 80
+    array_size_x = 5
+    array_size_y = 40
     array_pitch = 25
     root_path = os.environ['HOMEPATH'] + '\\Desktop' # WILL WORK ONLY UNDER WINDOWS!
     realOrSimulated = True  # TRUE for real data from dropletsid file, FALSE for simulated data
@@ -361,7 +401,7 @@ if __name__ == "__main__":
     else:
         grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
 
-        grid, theory_grid = changeGrid(grid, 0.1, array_pitch)
+        grid, theory_grid = changeGrid(grid, 0.01, array_pitch)
 
     trimmed_grid = grid[trimmed_grid_idx]
     
@@ -435,6 +475,8 @@ if __name__ == "__main__":
         array_size_x = int( (max(grid[:,0]) - min(grid[:,0]))/np.linalg.norm(xvec) )
         array_size_y = int( (max(grid[:,1]) - min(grid[:,1]))/np.linalg.norm(yvec) )
 
+    print(array_size_x)
+    print(array_size_y)
     mean_grid = generateMeanGrid(mean_vec1, mean_vec2, mean_vec3, mean_vec4, grid, array_size_x + 4, array_size_y + 4)
     
 
