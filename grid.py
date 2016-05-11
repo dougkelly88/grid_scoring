@@ -128,10 +128,8 @@ def makeBaseGrid(xsize, ysize):
             gridbase = np.append(gridbase, [[x, y]], axis=0)
 
     gridbase = np.delete(gridbase, 0, 0)
-
-    trimmed_grid_idx = removeDropletsFromEdge(gridbase, 1)
     
-    return gridbase, trimmed_grid_idx
+    return gridbase
 
 def changeGrid(base_grid, sd_noise, scale):
     # modify the base grid by adding noise and scaling to appropriate spacing
@@ -385,6 +383,10 @@ def importFromDropletsID(filepath, margin_pixels):
     
     return grid, trimmed_grid_idx, droplet_r
 
+def scoreThisGrid(grid_np_array, droplet_r, root_path):
+    print('nonsense')
+
+
 if __name__ == "__main__":
 
     droplet_r = 2.5
@@ -397,12 +399,19 @@ if __name__ == "__main__":
     if realOrSimulated:
         fpath = chooseFile(root_path, False)
         root_path, dummy = os.path.split(fpath)
-        grid, trimmed_grid_idx, droplet_r = importFromDropletsID(fpath, array_pitch - array_pitch/10)
-    else:
-        grid, trimmed_grid_idx = makeBaseGrid(array_size_x, array_size_y)
+        grid, droplet_r = importFromDropletsID(fpath)
 
+    else:
+        grid = makeBaseGrid(array_size_x, array_size_y)
+        #trimmed_grid_idx = removeDropletsFromEdge(grid, 1)
         grid, theory_grid = changeGrid(grid, 0.01, array_pitch)
 
+    # find extent of grid in short dimension
+    lenX = max(grid[:,0]) - min(grid[:,0])
+    lenY = max(grid[:,1]) - min(grid[:,1])
+    shortLen = min(lenX, lenY)
+            
+    trimmed_grid_idx = removeDropletsFromEdgeByDistance(grid, shortLen/10)
     trimmed_grid = grid[trimmed_grid_idx]
     
     print('droplet_r = %f' % droplet_r)
